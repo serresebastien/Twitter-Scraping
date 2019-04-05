@@ -8,8 +8,9 @@ from selenium.common.exceptions import TimeoutException
  
 from bs4 import BeautifulSoup as bs
 import time
+import csv
     
-def init_driver():
+def init_browser():
     
     # Specifying incognito mode as you launch your browser[OPTIONAL]
     option = webdriver.ChromeOptions()
@@ -23,31 +24,31 @@ def init_driver():
  
     return browser
 
-def close_driver(driver):
+def close_browser(browser):
  
-    driver.close()
+    browser.close()
  
     return
 
-def login_twitter(driver, username, password):
+def login_twitter(browser, username, password):
  
     # open the web page in the browser:
-    driver.get("https://twitter.com/login")
+    browser.get("https://twitter.com/login")
  
     # find the boxes for username and password
-    username_field = driver.find_element_by_class_name("js-username-field")
-    password_field = driver.find_element_by_class_name("js-password-field")
+    username_field = browser.find_element_by_class_name("js-username-field")
+    password_field = browser.find_element_by_class_name("js-password-field")
  
     # enter your username:
     username_field.send_keys(username)
-    driver.implicitly_wait(1)
+    browser.implicitly_wait(1)
  
     # enter your password:
     password_field.send_keys(password)
-    driver.implicitly_wait(1)
+    browser.implicitly_wait(1)
  
     # click the "Log In" button:
-    driver.find_element_by_class_name("EdgeButtom--medium").click()
+    browser.find_element_by_class_name("EdgeButtom--medium").click()
  
     return
 
@@ -56,20 +57,20 @@ class wait_for_more_than_n_elements_to_be_present(object):
         self.locator = locator
         self.count = count
  
-    def __call__(self, driver):
+    def __call__(self, browser):
         try:
-            elements = EC._find_elements(driver, self.locator)
+            elements = EC._find_elements(browser, self.locator)
             return len(elements) > self.count
         except StaleElementReferenceException:
             return False
 
-def search_twitter(driver, query):
+def search_twitter(browser, query):
  
     # wait until the search box has loaded:
-    box = driver.wait.until(EC.presence_of_element_located((By.NAME, "q")))
+    box = browser.wait.until(EC.presence_of_element_located((By.NAME, "q")))
  
     # find the search box in the html:
-    driver.find_element_by_name("q").clear()
+    browser.find_element_by_name("q").clear()
  
     # enter your search string in the search box:
     box.send_keys(query)
@@ -78,7 +79,7 @@ def search_twitter(driver, query):
     box.submit()
  
     # initial wait for the search results to load
-    wait = WebDriverWait(driver, 10)
+    wait = WebDriverWait(browser, 10)
  
     try:
         # wait until the first search result is found. Search results will be tweets, which are html list items and have the class='data-item-id':
@@ -88,14 +89,17 @@ def search_twitter(driver, query):
         while True:
  
             # extract all the tweets:
-            tweets = driver.find_elements_by_css_selector("li[data-item-id]")
+            #tweets = browser.find_elements_by_css_selector("li[data-item-id]")
+            tweets = browser.find_elements_by_xpath("//ol[@id='stream-items-id']/li")
  
             # find number of visible tweets:
             number_of_tweets = len(tweets)
+        
+            print(number_of_tweets)
  
-            # keep scrolling:
-            driver.execute_script("arguments[0].scrollIntoView();", tweets[-1])
- 
+            # keep scrolling:            
+            browser.execute_script("arguments[0].scrollIntoView();", tweets[-1])
+    
             try:
                 # wait for more tweets to be visible:
                 wait.until(wait_for_more_than_n_elements_to_be_present(
@@ -106,7 +110,7 @@ def search_twitter(driver, query):
                 break
  
         # extract the html for the whole lot:
-        page_source = driver.page_source
+        page_source = browser.page_source
  
     except TimeoutException:
  
@@ -142,14 +146,14 @@ def extract_tweets(page_source):
             # Tweet Text
             text_p = li.find("p", class_="tweet-text")
             if text_p is not None:
-                tweet['text'] = text_p.get_text()
+                tweet['text'] = text_p.get_text().encode('utf-8')
  
             # Tweet User ID, User Screen Name, User Name
             user_details_div = li.find("div", class_="tweet")
             if user_details_div is not None:
                 tweet['user_id'] = user_details_div['data-user-id']
-                tweet['user_screen_name'] = user_details_div['data-screen-name']
-                tweet['user_name'] = user_details_div['data-name']
+                tweet['user_screen_name'] = user_details_div['data-screen-name'].encode('utf-8')
+                tweet['user_name'] = user_details_div['data-name'].encode('utf-8')
  
             # Tweet date
             date_span = li.find("span", class_="_timestamp")
@@ -170,33 +174,43 @@ def extract_tweets(page_source):
             reply_span = li.select("span.ProfileTweet-action--reply > span.ProfileTweet-actionCount")
             if reply_span is not None and len(reply_span) > 0:
                 tweet['replies'] = int(reply_span[0]['data-tweet-stat-count'])
- 
+    
             tweets.append(tweet)
  
     return tweets
 
+def write_tweets_into_csv(tweets):
+    csv_columns = ['tweet_id','text','user_id','user_screen_name','user_name','created_at','retweets','likes','replies']
+        
+    csv_file = "tweets.csv"
+    try:
+        with open(csv_file, 'w') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+            writer.writeheader()
+            for data in tweets:
+                writer.writerow(data)
+    except IOError:
+        print("I/O error") 
+
 if __name__ == "__main__":
  
-    # start a driver for a web browser:
-    driver = init_driver()
+    # start a web browser:
+    browser = init_browser()
  
     # log in to twitter (replace username/password with your own):
-    username = "test"
-    password = "1234"
-    login_twitter(driver, username, password)
+    username = "Racer91Gtx"
+    password = "Argent2012!"
+    login_twitter(browser, username, password)
  
     # search twitter:
-    query = "what ever you want to search for"
-    page_source = search_twitter(driver, query)
+    query = "#brexit"
+    page_source = search_twitter(browser, query)
  
     # extract info from the search results:
     tweets = extract_tweets(page_source)
-     
-    # ==============================================
-    # add in any other functions here
-    # maybe some analysis functions
-    # maybe a function to write the info to file
-    # ==============================================
+    
+    # extract tweets info on a csv file:
+    write_tweets_into_csv(tweets)
  
-    # close the driver:
-    close_driver(driver)
+    # close the browser:
+    close_browser(browser)
