@@ -81,41 +81,34 @@ def search_twitter(browser, query):
     # initial wait for the search results to load
     wait = WebDriverWait(browser, 10)
  
-    try:
-        # wait until the first search result is found. Search results will be tweets, which are html list items and have the class='data-item-id':
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "li[data-item-id]")))
+    # wait until the first search result is found. Search results will be tweets, which are html list items and have the class='data-item-id':
+    wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "li[data-item-id]")))
  
-        # scroll down to the last tweet until there are no more tweets:
-        while True:
+    # scroll down to the last tweet until there are no more tweets:
+    while True:
  
-            # extract all the tweets:
-            #tweets = browser.find_elements_by_css_selector("li[data-item-id]")
-            tweets = browser.find_elements_by_xpath("//ol[@id='stream-items-id']/li")
+        # extract all the tweets:
+        #tweets = driver.find_elements_by_css_selector("li[data-item-id]")
+        tweets = browser.find_elements_by_xpath("//ol[@id='stream-items-id']/li")
  
-            # find number of visible tweets:
-            number_of_tweets = len(tweets)
+        # find number of visible tweets:
+        number_of_tweets = len(tweets)
         
-            print(number_of_tweets)
+        print(number_of_tweets)
  
-            # keep scrolling:            
-            browser.execute_script("arguments[0].scrollIntoView();", tweets[-1])
+        # keep scrolling:            
+        browser.execute_script("arguments[0].scrollIntoView();", tweets[-1])
     
-            try:
-                # wait for more tweets to be visible:
-                wait.until(wait_for_more_than_n_elements_to_be_present(
-                    (By.CSS_SELECTOR, "li[data-item-id]"), number_of_tweets))
+        try:
+            # wait for more tweets to be visible:
+            wait.until(wait_for_more_than_n_elements_to_be_present((By.CSS_SELECTOR, "li[data-item-id]"), number_of_tweets))
  
-            except TimeoutException:
-                # if no more are visible the "wait.until" call will timeout. Catch the exception and exit the while loop:
-                break
+        except TimeoutException:
+            # if no more are visible the "wait.until" call will timeout. Catch the exception and exit the while loop:
+            break
  
         # extract the html for the whole lot:
         page_source = browser.page_source
- 
-    except TimeoutException:
- 
-        # if there are no search results then the "wait.until" call in the first "try" statement will never happen and it will time out. So we catch that exception and return no html.
-        page_source=None
  
     return page_source
 
