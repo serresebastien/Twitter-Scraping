@@ -1,1 +1,3 @@
-# Twitter-Scraping
+[🇫🇷](/README-fr.md "French")
+
+# Twitter Scraping
