@@ -17,7 +17,7 @@ def init_browser():
     option.add_argument("--incognito")
 
     # Create new Instance of Chrome in incognito mode
-    browser = webdriver.Chrome(executable_path='/Users/sebastienserre/Documents/WebDriver/chromedriver', chrome_options=option)
+    browser = webdriver.Chrome(executable_path='THE_PATH_TO_YOUR_chromedriver', chrome_options=option)
  
     # set a default wait time for the browser [5 seconds here]:
     browser.wait = WebDriverWait(browser, 5)
@@ -191,8 +191,8 @@ if __name__ == "__main__":
     browser = init_browser()
  
     # log in to twitter (replace username/password with your own):
-    username = "Racer91Gtx"
-    password = "Argent2012!"
+    username = "test"
+    password = "1234"
     login_twitter(browser, username, password)
  
     # search twitter:
